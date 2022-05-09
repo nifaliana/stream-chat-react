@@ -1,4 +1,4 @@
-import React, { PropsWithChildren, useMemo, useEffect } from 'react';
+import React, { PropsWithChildren, useEffect, useMemo } from 'react';
 import ReactPlayer from 'react-player';
 import { nanoid } from 'nanoid';
 
@@ -117,13 +117,13 @@ export const AttachmentWithinContainer = <
   );
 };
 
-export const renderAttachmentActions = <
+export const AttachmentActions = <
   StreamChatGenerics extends DefaultStreamChatGenerics = DefaultStreamChatGenerics
->(
-  props: RenderAttachmentProps<StreamChatGenerics>,
-) => {
-  const { actionHandler, attachment, AttachmentActions = DefaultAttachmentActions } = props;
-
+>({
+  actionHandler,
+  attachment,
+  AttachmentActions = DefaultAttachmentActions,
+}: RenderAttachmentProps<StreamChatGenerics>) => {
   if (!attachment.actions?.length) return null;
 
   return (
@@ -160,8 +160,8 @@ export const renderImage = <
     return (
       <AttachmentWithinContainer attachment={attachment} componentType='image'>
         <div className='str-chat__attachment' key={`key-image-${attachment.id}`}>
-          {<Image {...attachment} />}
-          {renderAttachmentActions(props)}
+          <Image {...attachment} />
+          <AttachmentActions {...props} />
         </div>
       </AttachmentWithinContainer>
     );
@@ -186,7 +186,7 @@ export const renderCard = <
       <AttachmentWithinContainer attachment={attachment} componentType='card'>
         <div className='str-chat__attachment' key={`key-image-${attachment.id}`}>
           <Card {...attachment} key={`key-card-${attachment.id}`} />
-          {renderAttachmentActions(props)}
+          <AttachmentActions {...props} />
         </div>
       </AttachmentWithinContainer>
     );
@@ -250,7 +250,7 @@ export const renderMedia = <
               width='100%'
             />
           </div>
-          {renderAttachmentActions(props)}
+          <AttachmentActions {...props} />
         </div>
       </AttachmentWithinContainer>
     );
