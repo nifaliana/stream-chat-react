@@ -83,8 +83,7 @@ export const AttachmentWithinContainer = <
   children,
   componentType,
 }: PropsWithChildren<AttachmentContainerProps<StreamChatGenerics>>) => {
-  const id = useMemo(() => nanoid(), []);
-
+  const id = useMemo(() => `${nanoid()}-${attachment?.type || 'none'} `, []);
   const isGAT = isGalleryAttachmentType(attachment);
 
   useEffect(() => {
@@ -117,17 +116,17 @@ export const AttachmentWithinContainer = <
   );
 };
 
-export const AttachmentActions = <
+export const AttachmentActionsOuter = <
   StreamChatGenerics extends DefaultStreamChatGenerics = DefaultStreamChatGenerics
 >({
   actionHandler,
   attachment,
-  AttachmentActions = DefaultAttachmentActions,
+  AttachmentActions: AttachmentActionsUI = DefaultAttachmentActions,
 }: RenderAttachmentProps<StreamChatGenerics>) => {
   if (!attachment.actions?.length) return null;
 
   return (
-    <AttachmentActions
+    <AttachmentActionsUI
       {...attachment}
       actionHandler={(event, name, value) => actionHandler?.(event, name, value)}
       actions={attachment.actions}
@@ -161,7 +160,7 @@ export const renderImage = <
       <AttachmentWithinContainer attachment={attachment} componentType='image'>
         <div className='str-chat__attachment' key={`key-image-${attachment.id}`}>
           <Image {...attachment} />
-          <AttachmentActions {...props} />
+          <AttachmentActionsOuter {...props} />
         </div>
       </AttachmentWithinContainer>
     );
@@ -186,7 +185,7 @@ export const renderCard = <
       <AttachmentWithinContainer attachment={attachment} componentType='card'>
         <div className='str-chat__attachment' key={`key-image-${attachment.id}`}>
           <Card {...attachment} key={`key-card-${attachment.id}`} />
-          <AttachmentActions {...props} />
+          <AttachmentActionsOuter {...props} />
         </div>
       </AttachmentWithinContainer>
     );
@@ -250,7 +249,7 @@ export const renderMedia = <
               width='100%'
             />
           </div>
-          <AttachmentActions {...props} />
+          <AttachmentActionsOuter {...props} />
         </div>
       </AttachmentWithinContainer>
     );
