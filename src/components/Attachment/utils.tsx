@@ -1,4 +1,4 @@
-import React, { PropsWithChildren, useEffect, useMemo } from 'react';
+import React, { PropsWithChildren, useMemo } from 'react';
 import ReactPlayer from 'react-player';
 import { nanoid } from 'nanoid';
 
@@ -86,20 +86,13 @@ export const AttachmentWithinContainer = <
   const id = useMemo(() => `${nanoid()}-${attachment?.type || 'none'} `, []);
   const isGAT = isGalleryAttachmentType(attachment);
 
-  useEffect(() => {
-    console.log('mounted', id);
-    return () => {
-      console.log('unmounted', id);
-    };
-  }, []);
-
   let extra = '';
 
   if (!isGAT) {
     extra =
       componentType === 'card' && !attachment?.image_url && !attachment?.thumb_url
         ? 'no-image'
-        : attachment && attachment.actions && attachment.actions.length
+        : attachment?.actions?.length
         ? 'actions'
         : '';
   }
@@ -116,17 +109,76 @@ export const AttachmentWithinContainer = <
   );
 };
 
+/**
+ * @deprecated will be removed in the next major release, replaced with the proper component equivalent `AttachmentWithinContainer`
+ */
+export const renderAttachmentWithinContainer = <
+  StreamChatGenerics extends DefaultStreamChatGenerics = DefaultStreamChatGenerics
+>(
+  props: PropsWithChildren<AttachmentContainerProps<StreamChatGenerics>>,
+) => {
+  const { attachment, children, componentType } = props;
+
+  let extra = '';
+
+  if (!isGalleryAttachmentType(attachment)) {
+    extra =
+      componentType === 'card' && !attachment?.image_url && !attachment?.thumb_url
+        ? 'no-image'
+        : attachment && attachment.actions && attachment.actions.length
+        ? 'actions'
+        : '';
+  }
+
+  return (
+    <div
+      className={`str-chat__message-attachment str-chat__message-attachment--${componentType} str-chat__message-attachment--${
+        attachment?.type || ''
+      } str-chat__message-attachment--${componentType}--${extra}`}
+      key={`${isGalleryAttachmentType(attachment) ? '' : attachment?.id || nanoid()}-${
+        attachment?.type || 'none'
+      }`}
+    >
+      {children}
+    </div>
+  );
+};
+
 export const AttachmentActionsOuter = <
   StreamChatGenerics extends DefaultStreamChatGenerics = DefaultStreamChatGenerics
 >({
   actionHandler,
   attachment,
-  AttachmentActions: AttachmentActionsUI = DefaultAttachmentActions,
+  AttachmentActions = DefaultAttachmentActions,
 }: RenderAttachmentProps<StreamChatGenerics>) => {
   if (!attachment.actions?.length) return null;
 
   return (
-    <AttachmentActionsUI
+    <AttachmentActions
+      {...attachment}
+      actionHandler={(event, name, value) => actionHandler?.(event, name, value)}
+      actions={attachment.actions}
+      id={attachment.id || ''}
+      key={`key-actions-${attachment.id}`}
+      text={attachment.text || ''}
+    />
+  );
+};
+
+/**
+ * @deprecated will be removed in the next major release, replaced with the proper component equivalent `AttachmentActionsOuter`
+ */
+export const renderAttachmentActions = <
+  StreamChatGenerics extends DefaultStreamChatGenerics = DefaultStreamChatGenerics
+>(
+  props: RenderAttachmentProps<StreamChatGenerics>,
+) => {
+  const { actionHandler, attachment, AttachmentActions = DefaultAttachmentActions } = props;
+
+  if (!attachment.actions?.length) return null;
+
+  return (
+    <AttachmentActions
       {...attachment}
       actionHandler={(event, name, value) => actionHandler?.(event, name, value)}
       actions={attachment.actions}
