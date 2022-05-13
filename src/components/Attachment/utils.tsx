@@ -1,4 +1,4 @@
-import React, { PropsWithChildren, useMemo } from 'react';
+import React, { PropsWithChildren } from 'react';
 import ReactPlayer from 'react-player';
 import { nanoid } from 'nanoid';
 
@@ -83,7 +83,6 @@ export const AttachmentWithinContainer = <
   children,
   componentType,
 }: PropsWithChildren<AttachmentContainerProps<StreamChatGenerics>>) => {
-  const id = useMemo(() => `${nanoid()}-${attachment?.type || 'none'} `, []);
   const isGAT = isGalleryAttachmentType(attachment);
 
   let extra = '';
@@ -102,7 +101,6 @@ export const AttachmentWithinContainer = <
       className={`str-chat__message-attachment str-chat__message-attachment--${componentType} str-chat__message-attachment--${
         attachment?.type || ''
       } str-chat__message-attachment--${componentType}--${extra}`}
-      key={id}
     >
       {children}
     </div>
@@ -118,10 +116,11 @@ export const renderAttachmentWithinContainer = <
   props: PropsWithChildren<AttachmentContainerProps<StreamChatGenerics>>,
 ) => {
   const { attachment, children, componentType } = props;
+  const isGAT = isGalleryAttachmentType(attachment);
 
   let extra = '';
 
-  if (!isGalleryAttachmentType(attachment)) {
+  if (!isGAT) {
     extra =
       componentType === 'card' && !attachment?.image_url && !attachment?.thumb_url
         ? 'no-image'
@@ -135,16 +134,14 @@ export const renderAttachmentWithinContainer = <
       className={`str-chat__message-attachment str-chat__message-attachment--${componentType} str-chat__message-attachment--${
         attachment?.type || ''
       } str-chat__message-attachment--${componentType}--${extra}`}
-      key={`${isGalleryAttachmentType(attachment) ? '' : attachment?.id || nanoid()}-${
-        attachment?.type || 'none'
-      }`}
+      key={`${isGAT ? '' : attachment?.id || nanoid()}-${attachment?.type || 'none'}`}
     >
       {children}
     </div>
   );
 };
 
-export const AttachmentActionsOuter = <
+export const AttachmentActionsContainer = <
   StreamChatGenerics extends DefaultStreamChatGenerics = DefaultStreamChatGenerics
 >({
   actionHandler,
@@ -159,7 +156,6 @@ export const AttachmentActionsOuter = <
       actionHandler={(event, name, value) => actionHandler?.(event, name, value)}
       actions={attachment.actions}
       id={attachment.id || ''}
-      key={`key-actions-${attachment.id}`}
       text={attachment.text || ''}
     />
   );
@@ -189,7 +185,7 @@ export const renderAttachmentActions = <
   );
 };
 
-export const renderGallery = <
+export const GalleryContainer = <
   StreamChatGenerics extends DefaultStreamChatGenerics = DefaultStreamChatGenerics
 >({
   attachment,
@@ -200,7 +196,7 @@ export const renderGallery = <
   </AttachmentWithinContainer>
 );
 
-export const renderImage = <
+export const ImageContainer = <
   StreamChatGenerics extends DefaultStreamChatGenerics = DefaultStreamChatGenerics
 >(
   props: RenderAttachmentProps<StreamChatGenerics>,
@@ -210,9 +206,9 @@ export const renderImage = <
   if (attachment.actions && attachment.actions.length) {
     return (
       <AttachmentWithinContainer attachment={attachment} componentType='image'>
-        <div className='str-chat__attachment' key={`key-image-${attachment.id}`}>
+        <div className='str-chat__attachment'>
           <Image {...attachment} />
-          <AttachmentActionsOuter {...props} />
+          <AttachmentActionsContainer {...props} />
         </div>
       </AttachmentWithinContainer>
     );
@@ -220,12 +216,12 @@ export const renderImage = <
 
   return (
     <AttachmentWithinContainer attachment={attachment} componentType='image'>
-      <Image {...attachment} key={`key-image-${attachment.id}`} />
+      <Image {...attachment} />
     </AttachmentWithinContainer>
   );
 };
 
-export const renderCard = <
+export const CardContainer = <
   StreamChatGenerics extends DefaultStreamChatGenerics = DefaultStreamChatGenerics
 >(
   props: RenderAttachmentProps<StreamChatGenerics>,
@@ -236,8 +232,8 @@ export const renderCard = <
     return (
       <AttachmentWithinContainer attachment={attachment} componentType='card'>
         <div className='str-chat__attachment' key={`key-image-${attachment.id}`}>
-          <Card {...attachment} key={`key-card-${attachment.id}`} />
-          <AttachmentActionsOuter {...props} />
+          <Card {...attachment} />
+          <AttachmentActionsContainer {...props} />
         </div>
       </AttachmentWithinContainer>
     );
@@ -245,12 +241,12 @@ export const renderCard = <
 
   return (
     <AttachmentWithinContainer attachment={attachment} componentType='card'>
-      <Card {...attachment} key={`key-card-${attachment.id}`} />
+      <Card {...attachment} />
     </AttachmentWithinContainer>
   );
 };
 
-export const renderFile = <
+export const FileContainer = <
   StreamChatGenerics extends DefaultStreamChatGenerics = DefaultStreamChatGenerics
 >({
   attachment,
@@ -260,25 +256,25 @@ export const renderFile = <
 
   return (
     <AttachmentWithinContainer attachment={attachment} componentType='file'>
-      <File attachment={attachment} key={`key-file-${attachment.id}`} />
+      <File attachment={attachment} />
     </AttachmentWithinContainer>
   );
 };
 
-export const renderAudio = <
+export const AudioContainer = <
   StreamChatGenerics extends DefaultStreamChatGenerics = DefaultStreamChatGenerics
 >({
   attachment,
   Audio = DefaultAudio,
 }: RenderAttachmentProps<StreamChatGenerics>) => (
   <AttachmentWithinContainer attachment={attachment} componentType='audio'>
-    <div className='str-chat__attachment' key={`key-video-${attachment.id}`}>
+    <div className='str-chat__attachment'>
       <Audio og={attachment} />
     </div>
   </AttachmentWithinContainer>
 );
 
-export const renderMedia = <
+export const MediaContainer = <
   StreamChatGenerics extends DefaultStreamChatGenerics = DefaultStreamChatGenerics
 >(
   props: RenderAttachmentProps<StreamChatGenerics>,
@@ -288,10 +284,7 @@ export const renderMedia = <
   if (attachment.actions?.length) {
     return (
       <AttachmentWithinContainer attachment={attachment} componentType='media'>
-        <div
-          className='str-chat__attachment str-chat__attachment-media'
-          key={`key-video-${attachment.id}`}
-        >
+        <div className='str-chat__attachment str-chat__attachment-media'>
           <div className='str-chat__player-wrapper'>
             <Media
               className='react-player'
@@ -301,7 +294,7 @@ export const renderMedia = <
               width='100%'
             />
           </div>
-          <AttachmentActionsOuter {...props} />
+          <AttachmentActionsContainer {...props} />
         </div>
       </AttachmentWithinContainer>
     );
@@ -309,7 +302,7 @@ export const renderMedia = <
 
   return (
     <AttachmentWithinContainer attachment={attachment} componentType='media'>
-      <div className='str-chat__player-wrapper' key={`key-video-${attachment.id}`}>
+      <div className='str-chat__player-wrapper'>
         <Media
           className='react-player'
           controls

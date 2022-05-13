@@ -1,17 +1,17 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 import {
+  AudioContainer,
+  CardContainer,
+  FileContainer,
+  GalleryContainer,
+  ImageContainer,
   isAudioAttachment,
   isFileAttachment,
   isGalleryAttachmentType,
   isImageAttachment,
   isMediaAttachment,
-  renderAudio,
-  renderCard,
-  renderFile,
-  renderGallery,
-  renderImage,
-  renderMedia,
+  MediaContainer,
 } from './utils';
 
 import type { ReactPlayerProps } from 'react-player';
@@ -59,52 +59,58 @@ export const Attachment = <
 ) => {
   const { attachments, ...rest } = props;
 
-  const gallery = {
-    images: attachments?.filter(
-      (attachment) =>
-        attachment.type === 'image' && !(attachment.og_scrape_url || attachment.title_link),
-    ),
-    type: 'gallery',
-  };
+  const gallery = useMemo(
+    () => ({
+      images: attachments?.filter(
+        (attachment) =>
+          attachment.type === 'image' && !(attachment.og_scrape_url || attachment.title_link),
+      ),
+      type: 'gallery',
+    }),
+    [attachments],
+  );
 
-  const newAttachments =
-    gallery.images.length >= 2
-      ? [
-          ...attachments.filter(
-            (attachment) =>
-              !(
-                attachment.type === 'image' && !(attachment.og_scrape_url || attachment.title_link)
-              ),
-          ),
-          gallery,
-        ]
-      : attachments;
+  const newAttachments = useMemo(
+    () =>
+      gallery.images.length >= 2
+        ? [
+            ...attachments.filter(
+              (attachment) =>
+                !(
+                  attachment.type === 'image' &&
+                  !(attachment.og_scrape_url || attachment.title_link)
+                ),
+            ),
+            gallery,
+          ]
+        : attachments,
+    [gallery, attachments],
+  );
 
   return (
     <>
-      {newAttachments.map((attachment) => {
-        if (isGalleryAttachmentType(attachment)) {
-          return renderGallery({ ...rest, attachment });
-        }
+      {newAttachments.map((attachment, i) => {
+        const Component = getType<StreamChatGenerics>(attachment);
 
-        if (isImageAttachment(attachment)) {
-          return renderImage({ ...rest, attachment });
-        }
-
-        if (isAudioAttachment(attachment)) {
-          return renderAudio({ ...rest, attachment });
-        }
-
-        if (isFileAttachment(attachment)) {
-          return renderFile({ ...rest, attachment });
-        }
-
-        if (isMediaAttachment(attachment)) {
-          return renderMedia({ ...rest, attachment });
-        }
-
-        return renderCard({ ...rest, attachment });
+        // @ts-expect-error
+        return <Component key={i} {...rest} attachment={attachment} />;
       })}
     </>
   );
+};
+
+const getType = <StreamChatGenerics extends DefaultStreamChatGenerics = DefaultStreamChatGenerics>(
+  attachment: AttachmentProps<StreamChatGenerics>['attachments'][number],
+) => {
+  if (isGalleryAttachmentType(attachment)) return GalleryContainer;
+
+  if (isImageAttachment(attachment)) return ImageContainer;
+
+  if (isAudioAttachment(attachment)) return AudioContainer;
+
+  if (isFileAttachment(attachment)) return FileContainer;
+
+  if (isMediaAttachment(attachment)) return MediaContainer;
+
+  return CardContainer;
 };
