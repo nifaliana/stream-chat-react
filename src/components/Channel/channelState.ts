@@ -135,7 +135,6 @@ export const channelReducer = <
       const { channel } = action;
       return {
         ...state,
-        loading: false,
         members: { ...channel.state.members },
         messages: [...channel.state.messages],
         pinnedMessages: [...channel.state.pinnedMessages],
@@ -150,7 +149,6 @@ export const channelReducer = <
         ...state,
         hasMoreNewer: false,
         highlightedMessageId: undefined,
-        loading: false,
         suppressAutoscroll: false,
       };
     }
@@ -265,7 +263,6 @@ export const initialState = {
   error: null,
   hasMore: true,
   hasMoreNewer: false,
-  loading: true,
   loadingMore: false,
   members: {},
   messages: [],
