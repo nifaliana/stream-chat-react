@@ -1,4 +1,12 @@
-import React, { RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, {
+  RefObject,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  WheelEventHandler,
+} from 'react';
 
 import { useMessageListScrollManager } from './useMessageListScrollManager';
 
@@ -16,6 +24,8 @@ export type UseScrollLocationLogicParams<
   messages?: StreamMessage<StreamChatGenerics>[];
   scrolledUpThreshold?: number;
 };
+
+const OBSERVE_THRESHOLD = 10;
 
 export const useScrollLocationLogic = <
   StreamChatGenerics extends DefaultStreamChatGenerics = DefaultStreamChatGenerics
@@ -36,7 +46,8 @@ export const useScrollLocationLogic = <
   const closeToBottom = useRef(false);
   const closeToTop = useRef(false);
   const listRef = useRef<HTMLDivElement>(null);
-  const userInteraction = React.useRef({ clickedScrollBar: false, performedScroll: false });
+  // eslint-disable-next-line sort-keys
+  const userInteraction = React.useRef({ user: false, performedScroll: true });
 
   const scrollToBottom = useCallback(() => {
     if (!listRef.current?.scrollTo || hasMoreNewer || suppressAutoscroll) {
@@ -49,76 +60,47 @@ export const useScrollLocationLogic = <
     setHasNewMessages(false);
   }, [listRef, hasMoreNewer, suppressAutoscroll]);
 
-  const resizeObserver = useRef(new ResizeObserver(scrollToBottom));
-
   useEffect(() => {
-    if (!listRef.current) return;
+    if (!ulRef.current || !listRef.current) return;
 
-    const cancelObserverOnUserScrollActivity = (
-      e: WheelEvent | TouchEvent | KeyboardEvent | MouseEvent | Event,
-    ) => {
-      if (!listRef.current) return;
+    const observer = new ResizeObserver(() => {
+      // since there's no way (i know of) for us to add custom data
+      // to the scroll event, we'll have to flag it ourselves with reference
+      userInteraction.current.performedScroll = true;
+      scrollToBottom();
+    });
 
-      const msgListIsScrollableVertically =
-        listRef.current.offsetHeight <= listRef.current.scrollHeight;
-      const notLeftBtnClick = e instanceof MouseEvent && e.type === 'mouseDown' && e.buttons !== 1;
-      const notClickedScrollBar =
-        e instanceof MouseEvent && e.buttons === 1 && e.offsetX < listRef.current.clientWidth;
+    observer.observe(ulRef.current);
 
-      if (
-        !msgListIsScrollableVertically ||
-        userInteraction.current.performedScroll ||
-        notLeftBtnClick ||
-        notClickedScrollBar
-      ) {
+    const handleScroll: WheelEventHandler = (e) => {
+      // we'll then reset the reference but also quit out the
+      // scroll handler since it has not been dispatched by the user
+      if (userInteraction.current.performedScroll) {
+        userInteraction.current.performedScroll = false;
         return;
       }
 
-      const clickedOnScrollBar =
-        e instanceof MouseEvent && e.buttons === 1 && listRef.current.clientWidth < e.offsetX;
+      const { clientHeight, scrollHeight, scrollTop } = e.currentTarget;
 
-      if (clickedOnScrollBar) {
-        userInteraction.current.clickedScrollBar = true;
-        return;
+      console.log(scrollTop + clientHeight, scrollHeight - OBSERVE_THRESHOLD);
+
+      // user scrolled past threshold of 10 pixels, unobserve
+      if (scrollTop + clientHeight < scrollHeight - OBSERVE_THRESHOLD && ulRef.current) {
+        console.log('unobserve');
+        return observer.unobserve(ulRef.current);
       }
 
-      if (
-        (e.type === 'scroll' && userInteraction.current.clickedScrollBar) ||
-        (e instanceof KeyboardEvent && e.key === 'ArrowUp') ||
-        e instanceof WheelEvent ||
-        e instanceof TouchEvent
-      ) {
-        if (ulRef.current) resizeObserver.current.unobserve(ulRef.current);
-        userInteraction.current.performedScroll = true;
+      // user scrolled back within threshold of 10 pixels, observe
+      if (scrollTop + clientHeight >= scrollHeight - OBSERVE_THRESHOLD && ulRef.current) {
+        console.log('observe');
+        return observer.observe(ulRef.current);
       }
     };
 
-    if (ulRef.current && !userInteraction.current.performedScroll) {
-      resizeObserver.current.observe(ulRef.current);
-    }
+    listRef.current.addEventListener('scroll', handleScroll as any);
 
-    listRef.current.addEventListener('wheel', cancelObserverOnUserScrollActivity, {
-      once: true,
-      passive: true,
-    });
-    listRef.current.addEventListener('touchmove', cancelObserverOnUserScrollActivity, {
-      once: true,
-      passive: true,
-    });
-    listRef.current.addEventListener('keydown', cancelObserverOnUserScrollActivity);
-    listRef.current.addEventListener('mousedown', cancelObserverOnUserScrollActivity, {
-      passive: true,
-    });
-    listRef.current.addEventListener('scroll', cancelObserverOnUserScrollActivity);
     return () => {
-      if (ulRef.current) resizeObserver.current.unobserve(ulRef.current);
-      if (listRef.current) {
-        listRef.current.removeEventListener('wheel', cancelObserverOnUserScrollActivity);
-        listRef.current.removeEventListener('touchmove', cancelObserverOnUserScrollActivity);
-        listRef.current.removeEventListener('keydown', cancelObserverOnUserScrollActivity);
-        listRef.current.removeEventListener('mousedown', cancelObserverOnUserScrollActivity);
-        listRef.current.removeEventListener('scroll', cancelObserverOnUserScrollActivity);
-      }
+      listRef.current?.removeEventListener('scroll', handleScroll as any);
     };
   }, [listRef.current, ulRef.current]);
 
